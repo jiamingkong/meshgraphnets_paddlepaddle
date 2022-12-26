@@ -1,7 +1,7 @@
 import paddle
 from paddle import nn
 import paddle.nn.functional as F
-
+from dataset import Data
 import enum
 
 
@@ -20,10 +20,15 @@ class NodeType(enum.IntEnum):
 def decompose_graph(graph: dict) -> tuple:
     # graph: torch_geometric.data.data.Data
     # TODO: make it more robust
-    x = graph.get("x", None)
-    edge_index = graph.get("edge_index", None)
-    edge_attr = graph.get("edge_attr", None)
-    global_attr = graph.get("global_attr", None)
+    # x = graph.get("x", None)
+    x = graph.x
+    edge_index = graph.edge_index
+    edge_attr = graph.edge_attr
+    # global_attr = graph.global_attr
+    global_attr = None  # BUG: need some fixing
+    # edge_index = graph.get("edge_index", None)
+    # edge_attr = graph.get("edge_attr", None)
+    # global_attr = graph.get("global_attr", None)
     return (x, edge_index, edge_attr, global_attr)
 
 
@@ -35,11 +40,7 @@ def copy_geometric_data(graph: dict) -> dict:
     BUG: torch_geometric.data.data.Data does not have versions of paddle
     """
     node_attr, edge_index, edge_attr, global_attr = decompose_graph(graph)
-
-    ret = {
-        "x": node_attr,
-        "edge_index": edge_index,
-        "edge_attr": edge_attr,
-        "global_attr": global_attr,
-    }
+    ret = Data(
+        x=node_attr, edge_index=edge_index, edge_attr=edge_attr, global_attr=global_attr
+    )
     return ret

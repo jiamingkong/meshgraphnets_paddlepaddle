@@ -3,6 +3,7 @@ import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
 from utils.utils import decompose_graph, copy_geometric_data
+from dataset import Data
 
 # import torch.nn as nn
 # from .blocks import EdgeBlock, NodeBlock
@@ -43,13 +44,7 @@ class Encoder(nn.Layer):
         node_ = self.nb_encoder(node_attr)
         edge_ = self.eb_encoder(edge_attr)
 
-        # return Data(x=node_, edge_attr=edge_, edge_index=graph.edge_index)
-        return {
-            "x": node_,
-            "edge_attr": edge_,
-            "edge_index": graph["edge_index"],
-            "num_nodes": graph["num_nodes"],
-        }
+        return Data(x=node_, edge_attr=edge_, edge_index=graph.edge_index)
 
 
 class GnBlock(nn.Layer):
@@ -70,17 +65,10 @@ class GnBlock(nn.Layer):
         graph_last = copy_geometric_data(graph)
         graph = self.eb_module(graph)
         graph = self.nb_module(graph)
-        # edge_attr = graph_last.edge_attr + graph.edge_attr
-        edge_attr = graph_last["edge_attr"] + graph["edge_attr"]
-        # x = graph_last.x + graph.x
-        x = graph_last["x"] + graph["x"]
-        # return Data(x=x, edge_attr=edge_attr, edge_index=graph.edge_index)
-        return {
-            "x": x,
-            "edge_attr": edge_attr,
-            "edge_index": graph["edge_index"],
-            "num_nodes": graph["num_nodes"],
-        }
+        edge_attr = graph_last.edge_attr + graph.edge_attr
+
+        x = graph_last.x + graph.x
+        return Data(x=x, edge_attr=edge_attr, edge_index=graph.edge_index)
 
 
 class Decoder(nn.Layer):
@@ -91,8 +79,7 @@ class Decoder(nn.Layer):
         )
 
     def forward(self, graph: dict) -> paddle.Tensor:
-        # return self.decode_module(graph.x)
-        return self.decode_module(graph["x"])
+        return self.decode_module(graph.x)
 
 
 class EncoderProcesserDecoder(nn.Layer):
@@ -112,7 +99,7 @@ class EncoderProcesserDecoder(nn.Layer):
         for _ in range(message_passing_num):
             processer_list.append(GnBlock(hidden_size=hidden_size))
 
-        self.processer_list = processer_list
+        self.processer_list = nn.LayerList(processer_list)
 
         self.decoder = Decoder(hidden_size=hidden_size, output_size=2)
 

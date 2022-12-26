@@ -5,7 +5,14 @@ import paddle
 
 class Data(object):
     def __init__(
-        self, x=None, face=None, y=None, pos=None, edge_index=None, edge_attr=None
+        self,
+        x=None,
+        face=None,
+        y=None,
+        pos=None,
+        edge_index=None,
+        edge_attr=None,
+        global_attr=None,
     ):
         self.x = x
         self.face = face
@@ -13,6 +20,7 @@ class Data(object):
         self.pos = pos
         self.edge_index = edge_index
         self.edge_attr = edge_attr
+        self.global_attr = global_attr
 
     @property
     def num_nodes(self):
@@ -31,7 +39,12 @@ class Data(object):
         self_edge_attr_shape = (
             f"edge_attr={self.edge_attr.shape}" if self.edge_attr is not None else ""
         )
-        return f"Data({self_x_shape}{self_face_shape}{self_y_shape}{self_pos_shape}{self_edge_index_shape}{self_edge_attr_shape})"
+        self_global_attr_shape = (
+            f"global_attr={self.global_attr.shape}"
+            if self.global_attr is not None
+            else ""
+        )
+        return f"Data({self_x_shape}{self_face_shape}{self_y_shape}{self_pos_shape}{self_edge_index_shape}{self_edge_attr_shape}{self_global_attr_shape})"
 
     def offset_by_n(self, n):
         # self.edge_index += n
@@ -50,23 +63,30 @@ def concat(list_of_elements, axis=0):
         return paddle.concat(list_of_elements, axis=axis)
 
 
-def collate_fn(batch_data):
-    """
-    batch_data is a list of Data, the collate_fn will produce one big graph with several disconnected subgraphs
-    """
-    offset = [i.num_nodes for i in batch_data]
-    offset = np.cumsum(offset)
-    offset = np.insert(offset, 0, 0)
-    offset = offset[:-1]
-    batch_data = [i.offset_by_n(n) for i, n in zip(batch_data, offset)]
-    _x = concat([i.x for i in batch_data], axis=0)
-    _face = concat([i.face for i in batch_data], axis=1)
-    _y = concat([i.y for i in batch_data], axis=0)
-    _pos = concat([i.pos for i in batch_data], axis=0)
-    _edge_index = concat([i.edge_index for i in batch_data], axis=1)
-    _edge_attr = concat([i.edge_attr for i in batch_data], axis=0)
-    result = Data(
-        x=_x, face=_face, y=_y, pos=_pos, edge_index=_edge_index, edge_attr=_edge_attr
-    )
-    # import pdb; pdb.set_trace()
-    return result
+class Collator(object):
+    def __call__(self, batch_data):
+        """
+        batch_data is a list of Data, the collate_fn will produce one big graph with several disconnected subgraphs
+        """
+        # print(f"Collator: {len(batch_data)}")
+        offset = [i.num_nodes for i in batch_data]
+        offset = np.cumsum(offset)
+        offset = np.insert(offset, 0, 0)
+        offset = offset[:-1]
+        batch_data = [i.offset_by_n(n) for i, n in zip(batch_data, offset)]
+        _x = concat([i.x for i in batch_data], axis=0)
+        _face = concat([i.face for i in batch_data], axis=1)
+        _y = concat([i.y for i in batch_data], axis=0)
+        _pos = concat([i.pos for i in batch_data], axis=0)
+        _edge_index = concat([i.edge_index for i in batch_data], axis=1)
+        _edge_attr = concat([i.edge_attr for i in batch_data], axis=0)
+        result = Data(
+            x=_x,
+            face=_face,
+            y=_y,
+            pos=_pos,
+            edge_index=_edge_index,
+            edge_attr=_edge_attr,
+        )
+        # print(f"Collator: {result}")
+        return result

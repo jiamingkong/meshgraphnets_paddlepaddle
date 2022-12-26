@@ -41,6 +41,7 @@ class FPCBase:
         self.max_epochs = max_epochs
 
     def open_tra(self):
+        # print(f"Open tra, opened_tra: {len(self.opened_tra)}")
         while len(self.opened_tra) < self.open_tra_num:
 
             tra_index = self.datasets[self.tra_index]
@@ -59,6 +60,7 @@ class FPCBase:
                 print("Epoch Finished")
 
     def check_and_close_tra(self):
+        # print(f"Check and close tra, opened_tra: {len(self.opened_tra)}")
         to_del = []
         for tra in self.opened_tra:
             if self.opened_tra_readed_index[tra] >= (self.tra_len - 3):
@@ -74,7 +76,7 @@ class FPCBase:
 
     def shuffle_file(self):
         datasets = list(self.file_handle.keys())
-        # np.random.shuffle(datasets)
+        np.random.shuffle(datasets)
         self.datasets = datasets
 
     def epoch_end(self):
@@ -98,14 +100,6 @@ class FPCBase:
         node_attr = paddle.to_tensor(node_attr, dtype=paddle.float32)
         target = paddle.to_tensor(target, dtype=paddle.float32)
         face = paddle.to_tensor(datas[3].T, dtype=paddle.int64)
-
-        # torch_geometric.data.Data is not available in paddle, so I use a dict instead
-        # g = {
-        #     "x": node_attr,
-        #     "face": face,
-        #     "y": target,
-        #     "pos": crds,
-        # }
 
         g = Data(x=node_attr, face=face, y=target, pos=crds)
 
@@ -147,7 +141,7 @@ class FPCBase:
         datas.append(np.array([self.time_iterval * selected_frame], dtype=np.float32))
         # ("pos", "node_type", "velocity", "cells", "pressure", "time")
         g = self.datas_to_graph(datas)
-
+        # print(f"Return graph, opened_tra: {len(self.opened_tra)}, graph: {g}")
         return g
 
     def __iter__(self):
@@ -170,17 +164,6 @@ class FPC(IterableDataset):
         print("Dataset " + self.dataset_dir + " Initialized")
 
     def __iter__(self):
-        # worker_info = torch.utils.data.get_worker_info()
-        # if worker_info is None:
-        #     iter_start = 0
-        #     iter_end = len(self.file_handle)
-        # else:
-        #     per_worker = int(
-        #         math.ceil(len(self.file_handle) / float(worker_info.num_workers))
-        #     )
-        #     worker_id = worker_info.id
-        #     iter_start = worker_id * per_worker
-        #     iter_end = min(iter_start + per_worker, len(self.file_handle))
 
         # NOTE: here I removed the worker_info part, because it is not compatible with paddle
         iter_start = 0
@@ -189,6 +172,7 @@ class FPC(IterableDataset):
         keys = list(self.file_handle.keys())
         keys = keys[iter_start:iter_end]
         files = {k: self.file_handle[k] for k in keys}
+        # print(f"Iterating over {len(files)} files")
         return FPCBase(
             max_epochs=self.max_epochs,
             files=files,

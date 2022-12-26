@@ -8,5 +8,4 @@ def scatter_add(src, index, dim_size=None):
     indices = paddle.unsqueeze(index, axis=1)
     x = paddle.zeros_like(src)
     y = paddle.scatter_nd_add(x, indices, src)
-    # trim y's size
     return y[:dim_size]

@@ -36,12 +36,6 @@ class Simulator(nn.Layer):
         self._node_normalizer = normalization.Normalizer(
             size=node_input_size, name="node_normalizer", device=device
         )
-        # if device == "cpu":
-        #     self.model = self.model.cpu()
-        # else:
-        #     self.model = self.model.gpu()
-
-        # self._edge_normalizer = normalization.Normalizer(size=edge_input_size, name='edge_normalizer', device=device)
 
         print("Simulator model initialized")
 
@@ -66,13 +60,17 @@ class Simulator(nn.Layer):
 
         if self.training:
 
-            node_type = graph["x"][:, 0:1]
-            frames = graph["x"][:, 1:3]
-            target = graph["y"]
+            # node_type = graph["x"][:, 0:1]
+            # frames = graph["x"][:, 1:3]
+            # target = graph["y"]
+            node_type = graph.x[:, 0:1]
+            frames = graph.x[:, 1:3]
+            target = graph.y
 
             noised_frames = frames + velocity_sequence_noise
             node_attr = self.update_node_attr(noised_frames, node_type)
-            graph["x"] = node_attr
+            # graph["x"] = node_attr
+            graph.x = node_attr
             predicted = self.model(graph)
 
             target_acceration = self.velocity_to_accelation(noised_frames, target)
@@ -84,10 +82,13 @@ class Simulator(nn.Layer):
 
         else:
 
-            node_type = graph["x"][:, 0:1]
-            frames = graph["x"][:, 1:3]
+            # node_type = graph["x"][:, 0:1]
+            # frames = graph["x"][:, 1:3]
+            node_type = graph.x[:, 0:1]
+            frames = graph.x[:, 1:3]
             node_attr = self.update_node_attr(frames, node_type)
-            graph["x"] = node_attr
+            # graph["x"] = node_attr
+            graph.x = node_attr
             predicted = self.model(graph)
 
             velocity_update = self._output_normalizer.inverse(predicted)
@@ -95,41 +96,84 @@ class Simulator(nn.Layer):
 
             return predicted_velocity
 
-    # def load_checkpoint(self, ckpdir=None):
+    def load_checkpoint(self, filename=None):
+        if filename.endswith(".pkl"):
+            import pickle
+            import numpy as np
 
-    #     if ckpdir is None:
-    #         ckpdir = self.model_dir
-    #     # dicts = torch.load(ckpdir)
-    #     dicts = paddle.load(ckpdir)
-    #     self.load_state_dict(dicts["model"])
+            with open(filename, "rb") as f:
+                dicts = pickle.load(f)
+                model = dicts["model"]
+                for key, tensor in model.items():
+                    # put tensor from numpy to paddle.Tensor
+                    model[key] = paddle.to_tensor(tensor)
+                self.set_state_dict(model)
+                keys = list(dicts.keys())
+                keys.remove("model")
+                for k in keys:
+                    v = dicts[k]
+                    object = eval("self." + k)
+                    # import pdb; pdb.set_trace()
+                    object.set_variables(v)
+                    # set the parameters of the normalizer
 
-    #     keys = list(dicts.keys())
-    #     keys.remove("model")
+                print("Simulator model loaded checkpoint %s" % filename)
+            return
+        if filename is None:
+            # search for the largest number
+            files = os.listdir(self.model_dir)
+            if len(files) == 0:
+                print("No checkpoint found in %s" % self.model_dir)
+                return
+            files = [int(f.split(".")[0]) for f in files]
+            files.sort()
+            ckpdir = os.path.join(self.model_dir, str(files[-1]) + ".pdparams")
+        else:
+            ckpdir = filename
+        # dicts = torch.load(ckpdir)
+        dicts = paddle.load(ckpdir)
+        # self.load_state_dict(dicts["model"])
+        self.set_state_dict(dicts["model"])
 
-    #     for k in keys:
-    #         v = dicts[k]
-    #         for para, value in v.items():
-    #             object = eval("self." + k)
-    #             setattr(object, para, value)
+        keys = list(dicts.keys())
+        keys.remove("model")
 
-    #     print("Simulator model loaded checkpoint %s" % ckpdir)
+        for k in keys:
+            v = dicts[k]
+            for para, value in v.items():
+                object = eval("self." + k)
+                setattr(object, para, value)
 
-    # def save_checkpoint(self, savedir=None):
-    #     if savedir is None:
-    #         savedir = self.model_dir
+        print("Simulator model loaded checkpoint %s" % ckpdir)
 
-    #     os.makedirs(os.path.dirname(self.model_dir), exist_ok=True)
+    def save_checkpoint(self, savedir=None):
+        if savedir is None:
+            savedir = self.model_dir
 
-    #     model = self.state_dict()
-    #     _output_normalizer = self._output_normalizer.get_variable()
-    #     _node_normalizer = self._node_normalizer.get_variable()
-    #     # _edge_normalizer = self._edge_normalizer.get_variable()
+        os.makedirs(os.path.dirname(savedir), exist_ok=True)
+        # see what's in the folder, choose the largest number
+        if os.path.exists(savedir):
+            files = [i for i in os.listdir(savedir) if i.endswith(".pdparams")]
+            if len(files) > 0:
+                files = [int(f.split(".")[0]) for f in files]
+                files.sort()
+                savename = os.path.join(savedir, str(files[-1] + 1) + ".pdparams")
+            else:
+                savename = os.path.join(savedir, "0.pdparams")
 
-    #     to_save = {
-    #         "model": model,
-    #         "_output_normalizer": _output_normalizer,
-    #         "_node_normalizer": _node_normalizer,
-    #     }
+        model = self.state_dict()
+        # import pdb; pdb.set_trace()
+        for key, tensor in model.items():
+            print(f"{key:25s} Tensor={tensor.shape}")
+        _output_normalizer = self._output_normalizer.get_variable()
+        _node_normalizer = self._node_normalizer.get_variable()
+        # _edge_normalizer = self._edge_normalizer.get_variable()
 
-    #     torch.save(to_save, savedir)
-    #     print("Simulator model saved at %s" % savedir)
+        to_save = {
+            "model": model,
+            "_output_normalizer": _output_normalizer,
+            "_node_normalizer": _node_normalizer,
+        }
+        # import pdb; pdb.set_trace()
+        paddle.save(to_save, savename)
+        print("Simulator model saved at %s" % savename)
