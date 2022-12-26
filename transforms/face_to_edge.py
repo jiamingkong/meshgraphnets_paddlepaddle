@@ -1,7 +1,6 @@
 import paddle
 import paddle.nn.functional as F
 from paddle import nn
-from .basic import BasicDescriptor
 
 
 class FaceToEdge(object):

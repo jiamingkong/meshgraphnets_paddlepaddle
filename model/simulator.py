@@ -97,7 +97,7 @@ class Simulator(nn.Layer):
             return predicted_velocity
 
     def load_checkpoint(self, filename=None):
-        if filename.endswith(".pkl"):
+        if filename is not None and filename.endswith(".pkl"):
             import pickle
             import numpy as np
 
@@ -121,7 +121,7 @@ class Simulator(nn.Layer):
             return
         if filename is None:
             # search for the largest number
-            files = os.listdir(self.model_dir)
+            files = [i for i in os.listdir(self.model_dir) if i.endswith(".pdparams")]
             if len(files) == 0:
                 print("No checkpoint found in %s" % self.model_dir)
                 return

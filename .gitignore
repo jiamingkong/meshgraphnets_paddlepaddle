@@ -161,3 +161,7 @@ cython_debug/
 
 # dataset
 sample_data/
+
+# results and renders
+result/
+videos/

@@ -5,6 +5,9 @@ class DataLoader(object):
         self.num_workers = num_workers
         self.collate_fn = collate_fn
 
+        if self.batch_size == 1:
+            self.collate_fn = lambda x: x[0]
+
     def __iter__(self):
         dataset_iterator = iter(self.dataset)
         end_of_dataset = False

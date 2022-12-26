@@ -42,7 +42,8 @@ if __name__ == "__main__":
     print("Starting the loop")
     # import pdb; pdb.set_trace()
     batch_size = 8
-    simulator.load_checkpoint("checkpoint/simulator.pkl")
+    # simulator.load_checkpoint("checkpoint/simulator.pkl")
+    simulator.load_checkpoint()
 
     # for idx in range(0, 10, 4):
     for batch, graph in enumerate(train_loader):
