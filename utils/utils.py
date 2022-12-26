@@ -26,6 +26,7 @@ def decompose_graph(graph: dict) -> tuple:
     global_attr = graph.get("global_attr", None)
     return (x, edge_index, edge_attr, global_attr)
 
+
 # see https://github.com/sungyongs/dpgn/blob/master/utils.py
 def copy_geometric_data(graph: dict) -> dict:
     """return a copy of torch_geometric.data.data.Data

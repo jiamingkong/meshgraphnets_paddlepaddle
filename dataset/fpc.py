@@ -2,6 +2,8 @@ from paddle.io import IterableDataset
 import os, numpy as np
 import os.path as osp
 import h5py
+import pgl
+from .data import Data
 
 # Migrating from pytorch to paddle, I can't use the torch_geometric.data.Data class
 # from torch_geometric.data import Data
@@ -15,7 +17,7 @@ import time
 
 
 class FPCBase:
-    def __init__(self, max_epochs=1, files=None, small_open_tra_num = 10):
+    def __init__(self, max_epochs=1, files=None, small_open_tra_num=10):
 
         self.open_tra_num = small_open_tra_num
         self.file_handle = files
@@ -98,12 +100,15 @@ class FPCBase:
         face = paddle.to_tensor(datas[3].T, dtype=paddle.int64)
 
         # torch_geometric.data.Data is not available in paddle, so I use a dict instead
-        g = {
-            "x": node_attr,
-            "face": face,
-            "y": target,
-            "pos": crds,
-        }
+        # g = {
+        #     "x": node_attr,
+        #     "face": face,
+        #     "y": target,
+        #     "pos": crds,
+        # }
+
+        g = Data(x=node_attr, face=face, y=target, pos=crds)
+
         return g
 
     def __next__(self):
@@ -150,7 +155,9 @@ class FPCBase:
 
 
 class FPC(IterableDataset):
-    def __init__(self, max_epochs, dataset_dir, split="train", small_open_tra_num =10) -> None:
+    def __init__(
+        self, max_epochs, dataset_dir, split="train", small_open_tra_num=10
+    ) -> None:
 
         super().__init__()
 
@@ -182,7 +189,11 @@ class FPC(IterableDataset):
         keys = list(self.file_handle.keys())
         keys = keys[iter_start:iter_end]
         files = {k: self.file_handle[k] for k in keys}
-        return FPCBase(max_epochs=self.max_epochs, files=files, small_open_tra_num=self.small_open_tra_num)
+        return FPCBase(
+            max_epochs=self.max_epochs,
+            files=files,
+            small_open_tra_num=self.small_open_tra_num,
+        )
 
 
 class FPC_ROLLOUT(IterableDataset):
@@ -237,7 +248,8 @@ class FPC_ROLLOUT(IterableDataset):
     def __iter__(self):
         return self
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # some test code
 
     fpc = FPC(1, "../data/fpc", split="train")

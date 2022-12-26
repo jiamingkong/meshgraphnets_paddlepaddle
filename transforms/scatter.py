@@ -1,6 +1,7 @@
 import paddle
 
-def scatter_add(src, index, dim_size = None):
+
+def scatter_add(src, index, dim_size=None):
     if dim_size is None:
         dim_size = paddle.max(index) + 1
 

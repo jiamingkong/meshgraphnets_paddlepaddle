@@ -1,4 +1,5 @@
 from .model import EncoderProcesserDecoder
+
 # import torch.nn as nn
 # import torch
 # from torch_geometric.data import Data
@@ -39,7 +40,7 @@ class Simulator(nn.Layer):
         #     self.model = self.model.cpu()
         # else:
         #     self.model = self.model.gpu()
-        
+
         # self._edge_normalizer = normalization.Normalizer(size=edge_input_size, name='edge_normalizer', device=device)
 
         print("Simulator model initialized")

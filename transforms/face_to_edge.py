@@ -1,4 +1,3 @@
-
 import paddle
 import paddle.nn.functional as F
 from paddle import nn
@@ -13,31 +12,33 @@ class FaceToEdge(object):
         remove_faces (bool, optional): If set to :obj:`False`, the face tensor
             will not be removed.
     """
+
     def __init__(self, remove_faces: bool = True):
         self.remove_faces = remove_faces
 
     def __call__(self, data):
 
-        if "face" in data:
-            face = data["face"]
+        # if "face" in data:
+        if data.face is not None:
+            # face = data["face"]
             # Paddle doesn't have the "cat" api, therefore I have to hand-code this:
             # face: [3,3518]
+            face = data.face
             edge_index = paddle.concat([face[:2], face[1:], face[::2]], axis=1)
-            edge_index = to_undirected(edge_index, num_nodes=data["num_nodes"])
+            edge_index = to_undirected(edge_index, num_nodes=data.num_nodes)
 
             # data.edge_index = edge_index
-            data["edge_index"] = edge_index
+            # data["edge_index"] = edge_index
+            data.edge_index = edge_index
             if self.remove_faces:
-                del data["face"]
+                # del data["face"]
+                data.face = None
 
         return data
 
 
 def to_undirected(
-    edge_index,
-    edge_attr = None,
-    num_nodes = None,
-    reduce: str = "add",
+    edge_index, edge_attr=None, num_nodes=None, reduce: str = "add",
 ):
     r"""Converts the graph given by :attr:`edge_index` to an undirected graph
     such that :math:`(j,i) \in \mathcal{E}` for every edge :math:`(i,j) \in
@@ -60,15 +61,15 @@ def to_undirected(
 
     Examples:
 
-        >>> edge_index = torch.tensor([[0, 1, 1],
+        >>> edge_index = paddle.to_tensor([[0, 1, 1],
         ...                            [1, 0, 2]])
         >>> to_undirected(edge_index)
         tensor([[0, 1, 1, 2],
                 [1, 0, 2, 1]])
 
-        >>> edge_index = torch.tensor([[0, 1, 1],
+        >>> edge_index = paddle.to_tensor([[0, 1, 1],
         ...                            [1, 0, 2]])
-        >>> edge_weight = torch.tensor([1., 1., 1.])
+        >>> edge_weight = paddle.to_tensor([1., 1., 1.])
         >>> to_undirected(edge_index, edge_weight)
         (tensor([[0, 1, 1, 2],
                 [1, 0, 2, 1]]),
@@ -87,15 +88,16 @@ def to_undirected(
 
     row, col = edge_index[0], edge_index[1]
     # print(f"row = {row}, col = {col}")
-    row, col = paddle.concat([row, col], axis = 0), paddle.concat([col, row], axis = 0)
-    edge_index = paddle.stack([row, col], axis=0) # shape (2,n)
-    
+    row, col = paddle.concat([row, col], axis=0), paddle.concat([col, row], axis=0)
+    edge_index = paddle.stack([row, col], axis=0)  # shape (2,n)
+
     if isinstance(edge_attr, paddle.Tensor):
         edge_attr = paddle.concat([edge_attr, edge_attr], axis=0)
     # elif isinstance(edge_attr, (list, tuple)):
     #     edge_attr = [paddle.concat([e, e], axis=0) for e in edge_attr]
 
     return coalesce(edge_index, edge_attr, num_nodes, reduce)
+
 
 def maybe_num_nodes(edge_index, num_nodes=None):
     if num_nodes is not None:
@@ -105,13 +107,14 @@ def maybe_num_nodes(edge_index, num_nodes=None):
     else:
         return max(edge_index.size(0), edge_index.size(1))
 
+
 def coalesce(
     edge_index,
-    edge_attr = None,
-    num_nodes = None,
-    reduce = "add",
-    is_sorted = False,
-    sort_by_row = True,
+    edge_attr=None,
+    num_nodes=None,
+    reduce="add",
+    is_sorted=False,
+    sort_by_row=True,
 ):
     """Row-wise sorts :obj:`edge_index` and removes its duplicated entries.
     Duplicate entries in :obj:`edge_attr` are merged by scattering them
@@ -183,7 +186,7 @@ def coalesce(
             edge_attr = [e[perm] for e in edge_attr]
 
     mask = idx[1:] > idx[:-1]
-    
+
     # print(f"mask = {mask}") # True, True, False, True
     # Only perform expensive merging in case there exists duplicates:
 
@@ -191,7 +194,7 @@ def coalesce(
         if isinstance(edge_attr, (paddle.Tensor, list, tuple)):
             return edge_index, edge_attr
         return edge_index
-    
+
     mask_ = paddle.tile(mask, (edge_index.shape[0], 1))
     edge_index = paddle.masked_select(edge_index, mask_).reshape((2, mask.sum()))
 
@@ -214,8 +217,8 @@ def coalesce(
     return edge_index
 
 
-if __name__ == '__main__':
-    edge_index = paddle.to_tensor([[1, 1, 2, 3],[3, 3, 1, 2]])
+if __name__ == "__main__":
+    edge_index = paddle.to_tensor([[1, 1, 2, 3], [3, 3, 1, 2]])
     print(coalesce(edge_index))
     edge_index = paddle.to_tensor([[0, 1, 1], [1, 0, 2]])
     print(to_undirected(edge_index))

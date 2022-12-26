@@ -75,7 +75,12 @@ class GnBlock(nn.Layer):
         # x = graph_last.x + graph.x
         x = graph_last["x"] + graph["x"]
         # return Data(x=x, edge_attr=edge_attr, edge_index=graph.edge_index)
-        return {"x": x, "edge_attr": edge_attr, "edge_index": graph["edge_index"], "num_nodes": graph["num_nodes"]}
+        return {
+            "x": x,
+            "edge_attr": edge_attr,
+            "edge_index": graph["edge_index"],
+            "num_nodes": graph["num_nodes"],
+        }
 
 
 class Decoder(nn.Layer):
@@ -106,7 +111,7 @@ class EncoderProcesserDecoder(nn.Layer):
         processer_list = []
         for _ in range(message_passing_num):
             processer_list.append(GnBlock(hidden_size=hidden_size))
-        
+
         self.processer_list = processer_list
 
         self.decoder = Decoder(hidden_size=hidden_size, output_size=2)

@@ -4,7 +4,6 @@ import paddle
 import paddle.nn as nn
 
 
-
 class Normalizer(nn.Layer):
     def __init__(
         self,
@@ -21,18 +20,12 @@ class Normalizer(nn.Layer):
         self._std_epsilon = paddle.to_tensor(
             std_epsilon, dtype=paddle.float32, stop_gradient=True
         )
-        self._acc_count = paddle.to_tensor(
-            0, dtype=paddle.float32, stop_gradient=True
-        )
+        self._acc_count = paddle.to_tensor(0, dtype=paddle.float32, stop_gradient=True)
         self._num_accumulations = paddle.to_tensor(
             0, dtype=paddle.float32, stop_gradient=True
         )
-        self._acc_sum = paddle.zeros(
-            (1, size), dtype=paddle.float32
-        )
-        self._acc_sum_squared = paddle.zeros(
-            (1, size), dtype=paddle.float32
-        )
+        self._acc_sum = paddle.zeros((1, size), dtype=paddle.float32)
+        self._acc_sum_squared = paddle.zeros((1, size), dtype=paddle.float32)
         # stop gradient for _acc_sum and _acc_sum_squared
         self._acc_sum.stop_gradient = True
         self._acc_sum_squared.stop_gradient = True
@@ -69,7 +62,7 @@ class Normalizer(nn.Layer):
         # squared_data_sum = torch.sum(batched_data ** 2, axis=0, keepdims=True)
         data_sum = paddle.sum(batched_data, axis=0, keepdim=True)
         squared_data_sum = paddle.sum(batched_data ** 2, axis=0, keepdim=True)
-        
+
         self._acc_sum += data_sum
         self._acc_sum_squared += squared_data_sum
         self._acc_count += count
@@ -81,16 +74,14 @@ class Normalizer(nn.Layer):
         #     torch.tensor(1.0, dtype=torch.float32, device=self._acc_count.device),
         # )
         safe_count = paddle.maximum(
-            self._acc_count,
-            paddle.to_tensor(1.0, dtype=paddle.float32),
+            self._acc_count, paddle.to_tensor(1.0, dtype=paddle.float32),
         )
 
         return self._acc_sum / safe_count
 
     def _std_with_epsilon(self):
         safe_count = paddle.maximum(
-            self._acc_count,
-            paddle.to_tensor(1.0, dtype=paddle.float32),
+            self._acc_count, paddle.to_tensor(1.0, dtype=paddle.float32),
         )
 
         std = paddle.sqrt(self._acc_sum_squared / safe_count - self._mean() ** 2)

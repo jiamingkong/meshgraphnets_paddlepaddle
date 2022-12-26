@@ -11,6 +11,7 @@ import paddle.nn.functional as F
 from utils.utils import decompose_graph
 from transforms.scatter import scatter_add
 import numpy as np
+from dataset import Data
 
 
 class EdgeBlock(nn.Layer):
@@ -31,17 +32,18 @@ class EdgeBlock(nn.Layer):
         edges_to_collect.append(senders_attr)
         edges_to_collect.append(receivers_attr)
         edges_to_collect.append(edge_attr)
-       
+
         collected_edges = paddle.concat(edges_to_collect, axis=1)
 
         edge_attr_ = self.net(collected_edges)  # Update
 
-        return {
-            "x": node_attr,
-            "edge_attr": edge_attr_,
-            "edge_index": edge_index,
-            "num_nodes": node_attr.shape[0],
-        }
+        # return {
+        #     "x": node_attr,
+        #     "edge_attr": edge_attr_,
+        #     "edge_index": edge_index,
+        #     "num_nodes": node_attr.shape[0],
+        # }
+        return Data(x=node_attr, edge_attr=edge_attr_, edge_index=edge_index)
 
 
 class NodeBlock(nn.Layer):
@@ -53,18 +55,23 @@ class NodeBlock(nn.Layer):
 
     def forward(self, graph):
         # Decompose graph
-        edge_attr = graph["edge_attr"]
+        # edge_attr = graph["edge_attr"]
+        edge_attr = graph.edge_attr
         nodes_to_collect = []
 
-        receivers_idx = graph["edge_index"][1] # correct
-        num_nodes = graph["num_nodes"] # 1876, correct
+        # receivers_idx = graph["edge_index"][1] # correct
+        receivers_idx = graph.edge_index[1]
+        # num_nodes = graph["num_nodes"] # 1876, correct
+        num_nodes = graph.num_nodes
         # OK the scatter add, might need to switch to paddle's scatter_nd_add
         agg_received_edges = scatter_add(edge_attr, receivers_idx, dim_size=num_nodes)
-        nodes_to_collect.append(graph["x"])
+        # nodes_to_collect.append(graph["x"])
+        nodes_to_collect.append(graph.x)
         nodes_to_collect.append(agg_received_edges)
         collected_nodes = paddle.concat(nodes_to_collect, axis=-1)
         if self.net is not None:
             x = self.net(collected_nodes)
         else:
             x = collected_nodes
-        return {"x": x, "edge_attr": edge_attr, "edge_index": graph["edge_index"], "num_nodes": num_nodes}
+        # return {"x": x, "edge_attr": edge_attr, "edge_index": graph["edge_index"], "num_nodes": num_nodes}
+        return Data(x=x, edge_attr=edge_attr, edge_index=graph.edge_index)
