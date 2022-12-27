@@ -8,7 +8,7 @@ class Normalizer(nn.Layer):
     def __init__(
         self,
         size,
-        max_accumulations=10**6,
+        max_accumulations=10 ** 6,
         std_epsilon=1e-8,
         name="Normalizer",
         device="cuda",
@@ -61,7 +61,7 @@ class Normalizer(nn.Layer):
         # data_sum = torch.sum(batched_data, axis=0, keepdims=True)
         # squared_data_sum = torch.sum(batched_data ** 2, axis=0, keepdims=True)
         data_sum = paddle.sum(batched_data, axis=0, keepdim=True)
-        squared_data_sum = paddle.sum(batched_data**2, axis=0, keepdim=True)
+        squared_data_sum = paddle.sum(batched_data ** 2, axis=0, keepdim=True)
 
         self._acc_sum += data_sum
         self._acc_sum_squared += squared_data_sum
@@ -74,16 +74,14 @@ class Normalizer(nn.Layer):
         #     torch.tensor(1.0, dtype=torch.float32, device=self._acc_count.device),
         # )
         safe_count = paddle.maximum(
-            self._acc_count,
-            paddle.to_tensor(1.0, dtype=paddle.float32),
+            self._acc_count, paddle.to_tensor(1.0, dtype=paddle.float32),
         )
 
         return self._acc_sum / safe_count
 
     def _std_with_epsilon(self):
         safe_count = paddle.maximum(
-            self._acc_count,
-            paddle.to_tensor(1.0, dtype=paddle.float32),
+            self._acc_count, paddle.to_tensor(1.0, dtype=paddle.float32),
         )
 
         std = paddle.sqrt(self._acc_sum_squared / safe_count - self._mean() ** 2)

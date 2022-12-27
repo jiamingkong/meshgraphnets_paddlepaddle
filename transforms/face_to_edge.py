@@ -37,10 +37,7 @@ class FaceToEdge(object):
 
 
 def to_undirected(
-    edge_index,
-    edge_attr=None,
-    num_nodes=None,
-    reduce: str = "add",
+    edge_index, edge_attr=None, num_nodes=None, reduce: str = "add",
 ):
     r"""Converts the graph given by :attr:`edge_index` to an undirected graph
     such that :math:`(j,i) \in \mathcal{E}` for every edge :math:`(i,j) \in

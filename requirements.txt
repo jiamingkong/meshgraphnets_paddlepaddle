@@ -1,0 +1,8 @@
+h5py
+paddlepaddle
+opencv_python
+matplotlib
+numpy
+pillow
+tqdm
+tensorflow

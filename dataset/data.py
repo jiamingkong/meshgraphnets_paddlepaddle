@@ -24,9 +24,15 @@ class Data(object):
 
     @property
     def num_nodes(self):
+        """
+        返回图中节点的数量
+        """
         return self.x.shape[0]
 
     def __repr__(self):
+        """
+        人类可读的字符串表示形式
+        """
         self_x_shape = f"x={self.x.shape}, " if self.x is not None else ""
         self_face_shape = f"face={self.face.shape}, " if self.face is not None else ""
         self_y_shape = f"y={self.y.shape}, " if self.y is not None else ""
@@ -47,7 +53,9 @@ class Data(object):
         return f"Data({self_x_shape}{self_face_shape}{self_y_shape}{self_pos_shape}{self_edge_index_shape}{self_edge_attr_shape}{self_global_attr_shape})"
 
     def offset_by_n(self, n):
-        # self.edge_index += n
+        """
+        方便构建子图拼接成批成大图的函数
+        """
         if self.edge_index is not None:
             self.edge_index = self.edge_index + n
         if self.face is not None:
@@ -68,7 +76,6 @@ class Collator(object):
         """
         batch_data is a list of Data, the collate_fn will produce one big graph with several disconnected subgraphs
         """
-        # print(f"Collator: {len(batch_data)}")
         offset = [i.num_nodes for i in batch_data]
         offset = np.cumsum(offset)
         offset = np.insert(offset, 0, 0)

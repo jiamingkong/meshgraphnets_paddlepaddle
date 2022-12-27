@@ -60,16 +60,12 @@ class Simulator(nn.Layer):
 
         if self.training:
 
-            # node_type = graph["x"][:, 0:1]
-            # frames = graph["x"][:, 1:3]
-            # target = graph["y"]
             node_type = graph.x[:, 0:1]
             frames = graph.x[:, 1:3]
             target = graph.y
 
             noised_frames = frames + velocity_sequence_noise
             node_attr = self.update_node_attr(noised_frames, node_type)
-            # graph["x"] = node_attr
             graph.x = node_attr
             predicted = self.model(graph)
 

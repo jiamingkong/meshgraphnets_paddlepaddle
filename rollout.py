@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description="Implementation of MeshGraphNets")
 parser.add_argument("--gpu", action="store_true", help="use gpu")
 
 parser.add_argument("--model_dir", type=str, default="checkpoint/simulator.pth")
-
+parser.add_argument("--data_dir", type=str, default="data/cylinder_flow/datapkls")
 parser.add_argument("--test_split", type=str, default="test")
 parser.add_argument("--rollout_num", type=int, default=1)
 
@@ -91,20 +91,11 @@ if __name__ == "__main__":
     simulator = Simulator(
         message_passing_num=15, node_input_size=11, edge_input_size=3, device=device
     )
-    simulator.load_checkpoint()
+    simulator.load_checkpoint(args.model_dir)
     simulator.eval()
 
-    dataset = FPC_ROLLOUT(
-        "C:/Users/kinet/Documents/Github/meshGraphNets_pytorch/data/cylinder_flow/datapkls",
-        split="test",
-    )
-    transformer = Compose(
-        [
-            FaceToEdge(),
-            Cartesian(norm=False),
-            Distance(norm=False),
-        ]
-    )
+    dataset = FPC_ROLLOUT(args.data_dir, split=args.test_split,)
+    transformer = Compose([FaceToEdge(), Cartesian(norm=False), Distance(norm=False),])
     test_loader = DataLoader(dataset=dataset, batch_size=1)
 
     for i in range(args.rollout_num):

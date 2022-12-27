@@ -15,51 +15,67 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+import argparse
 
-noise_std = 2e-2
+parser = argparse.ArgumentParser(description="Implementation of MeshGraphNets")
+parser.add_argument("--gpu", action="store_true", help="use gpu")
+parser.add_argument("--gpu_id", type=int, default=0, help="gpu id")
+parser.add_argument("--noise_std", type=float, default=2e-2)
+parser.add_argument("--model_dir", type=str, default="checkpoint")
+parser.add_argument("--data_dir", type=str, default="data/cylinder_flow/datapkls")
+parser.add_argument("--lr", type=float, default=1e-4)
+parser.add_argument("--batch_size", type=int, default=4)
+parser.add_argument("--gradient_accumulation_step", type=int, default=32)
+parser.add_argument("--save_interval", type=int, default=1000)
+parser.add_argument("--max_epoch", type=int, default=20)
+
+args = parser.parse_args()
+
+# setting gpu devices
+if args.gpu:
+    device = "gpu:" + str(args.gpu_id)
+else:
+    device = "cpu"
+paddle.set_device(device)
 
 
 if __name__ == "__main__":
+
+    # The model
     am = AverageMeter("Cylinder Flow")
+
     simulator = Simulator(
         message_passing_num=15, node_input_size=11, edge_input_size=3, device="gpu"
     )
+
+    # this seemed to stable the training a lot, tune it at your own risk
     clip = paddle.nn.ClipGradByNorm(clip_norm=0.5)
     optimizer = paddle.optimizer.Adam(
-        parameters=simulator.parameters(), learning_rate=1e-4, grad_clip=clip
+        parameters=simulator.parameters(), learning_rate=args.lr, grad_clip=clip
     )
-    # simulator.cuda()
+
     train_dataset = FPC(
-        10,
-        "C:/Users/kinet/Documents/Github/meshGraphNets_pytorch/data/cylinder_flow/datapkls",
-        split="valid",
-        small_open_tra_num=10,
+        args.max_epoch, args.data_dir, split="train", small_open_tra_num=10,
     )
-    # definitely broken because of the different point numbers
+
+    # data loader
     collator = Collator()
-    train_loader = DataLoader(train_dataset, batch_size=4, collate_fn=collator)
-    # graph = next(iter(train_dataset))
-
-    transforms = Compose(
-        [
-            FaceToEdge(),
-            Cartesian(norm=False),
-            Distance(norm=False),
-        ]
+    train_loader = DataLoader(
+        train_dataset, batch_size=args.batch_size, collate_fn=collator
     )
 
-    print("Starting the loop")
+    transforms = Compose([FaceToEdge(), Cartesian(norm=False), Distance(norm=False),])
 
-    simulator.load_checkpoint()
-    gradient_accumulation_step = 32
-    # for idx in range(0, 10, 4):
+    simulator.load_checkpoint(args.model_dir)
+
+    print("All set up, start training")
+
+    g_step = args.gradient_accumulation_step
+
     for batch, graph in enumerate(train_loader):
-
-        # graph = next(iter(train_loader))
         graph = transforms(graph)
         node_type = graph.x[:, 0]
-        velocity_sequence_noise = get_velocity_noise(graph, 2e-2)
-
+        velocity_sequence_noise = get_velocity_noise(graph, args.noise_std)
         predicted_acc, target_acc = simulator(graph, velocity_sequence_noise)
         mask = paddle.logical_or(
             node_type == NodeType.NORMAL, node_type == NodeType.OUTFLOW
@@ -67,21 +83,18 @@ if __name__ == "__main__":
 
         errors = ((predicted_acc - target_acc) ** 2)[mask]
         loss = paddle.mean(errors)
-        # print(loss)
 
         # do some gradient accumulation
-        loss = loss / gradient_accumulation_step
+        loss = loss / g_step
         loss.backward()
-        if batch % gradient_accumulation_step == 0:
+        if batch % g_step == 0:
             optimizer.step()
             optimizer.clear_grad()
 
-        # print(f"batch {batch} loss: {loss.numpy()}")
         am.update(loss.item(), batch)
         print(am)
-        if batch % 200 == 0:
-            simulator.save_checkpoint()
+        if batch % args.save_interval == 0 and batch > 0:
+            simulator.save_checkpoint(args.model_dir)
             print("Saved checkpoint")
 
-    print("Done")
-    # simulator.save_checkpoint()
+    print("Training finished")
