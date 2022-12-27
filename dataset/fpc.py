@@ -2,7 +2,6 @@ from paddle.io import IterableDataset
 import os, numpy as np
 import os.path as osp
 import h5py
-import pgl
 from .data import Data
 
 # Migrating from pytorch to paddle, I can't use the torch_geometric.data.Data class
@@ -11,10 +10,6 @@ from .data import Data
 import paddle
 import paddle.nn.functional as F
 from paddle import nn
-
-import math
-import time
-
 
 class FPCBase:
     def __init__(self, max_epochs=1, files=None, small_open_tra_num=10):
