@@ -1,7 +1,7 @@
 from dataset import FPC, Data, Collator, DataLoader
 
 # from paddle.io import DataLoader
-from transforms import FaceToEdge, BasicDescriptor, Cartesian, Distance, Compose
+from transforms import FaceToEdge, Cartesian, Distance, Compose
 from model.blocks import NodeBlock
 from utils.noise import get_velocity_noise
 from model import Simulator
