@@ -58,7 +58,7 @@ python rollout.py \
   --data_dir data/cylinder_flow/datapkls
 ```
 
-在result/文件夹中会输出多个pkl文件，记录测试集的外推结果
+在result/文件夹中会输出多个pkl文件，记录测试集的外推结果。
 
 ### 4.2 可视化
 
@@ -67,6 +67,22 @@ python visualize_cylinder_flow.py
 ```
 
 这个脚本会将result下的pkl都渲染成video中的mp4视频文件以便可视化。
+
+### 4.3 验证论文效果
+
+复现论文中的精度，可以执行下面命令，直接使用git中的预训练模型：
+
+```bash
+python .\rollout.py --rollout_num 100 --test_split valid --step 60 --model_dir .\checkpoint\1.pdparams --data_dir data/cylinder_flow/datapkls --gpu
+```
+
+我们的复现精度为：
+
+```
+testing rmse  @ step 0 loss: 2.45e-03 +- 8.64e-04
+```
+
+优于原论文。
 
 ## 5. Paddle复现心得
 
@@ -80,7 +96,7 @@ Pytorch对图神经网络支持力度明显好于百度飞桨。其中torch_geom
 
 ```python
 class Data(object):
-	def offset_by_n(self, n):
+    def offset_by_n(self, n):
         if self.edge_index is not None:
             self.edge_index = self.edge_index + n
         if self.face is not None:
@@ -129,7 +145,6 @@ def scatter_add(src, index, dim_size=None):
     x = paddle.zeros_like(src)
     y = paddle.scatter_nd_add(x, indices, src)
     return y[:dim_size]
-
 ```
 
 一个简单的例子是：
