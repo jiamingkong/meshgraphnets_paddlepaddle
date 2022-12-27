@@ -163,8 +163,8 @@ class Simulator(nn.Layer):
 
         model = self.state_dict()
         # import pdb; pdb.set_trace()
-        for key, tensor in model.items():
-            print(f"{key:25s} Tensor={tensor.shape}")
+        # for key, tensor in model.items():
+        #     print(f"{key:25s} Tensor={tensor.shape}")
         _output_normalizer = self._output_normalizer.get_variable()
         _node_normalizer = self._node_normalizer.get_variable()
         # _edge_normalizer = self._edge_normalizer.get_variable()

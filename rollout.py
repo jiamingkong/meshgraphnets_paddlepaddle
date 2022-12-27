@@ -94,7 +94,10 @@ if __name__ == "__main__":
     simulator.load_checkpoint()
     simulator.eval()
 
-    dataset = FPC_ROLLOUT("sample_data/small", split="valid")
+    dataset = FPC_ROLLOUT(
+        "C:/Users/kinet/Documents/Github/meshGraphNets_pytorch/data/cylinder_flow/datapkls",
+        split="test",
+    )
     transformer = Compose(
         [
             FaceToEdge(),
